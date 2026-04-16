@@ -1,0 +1,28 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "org.openjfx:javafx-media:21"
+}
+
+javafx {
+    version = "21"
+    modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.media' ]
+}
+
+application {
+    mainClass = 'mm.prog.project.MainApp'
+    
+    // This passes the path to the JVM explicitly
+    applicationDefaultJvmArgs = [
+        "-Djava.library.path=" + project.rootProject.projectDir.path + "/opencv_native",
+        "--enable-native-access=ALL-UNNAMED"
+    ]
+}
