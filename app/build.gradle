@@ -9,20 +9,29 @@ repositories {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "org.openjfx:javafx-controls:21"
+    implementation "org.openjfx:javafx-fxml:21"
     implementation "org.openjfx:javafx-media:21"
+    implementation "org.openjfx:javafx-base:21"
+    implementation "org.openjfx:javafx-graphics:21"
 }
 
 javafx {
     version = "21"
-    modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.media' ]
+    modules = [
+            'javafx.controls',
+            'javafx.fxml',
+            'javafx.media',
+            'javafx.base',
+            'javafx.graphics'
+    ]
 }
 
 application {
     mainClass = 'mm.prog.project.MainApp'
-    
-    // This passes the path to the JVM explicitly
+
     applicationDefaultJvmArgs = [
-        "-Djava.library.path=" + project.rootProject.projectDir.path + "/opencv_native",
-        "--enable-native-access=ALL-UNNAMED"
+            "-Djava.library.path=" + project.rootProject.projectDir.path + "/opencv_native",
+            "--enable-native-access=ALL-UNNAMED"
     ]
 }

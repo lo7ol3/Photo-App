@@ -28,10 +28,14 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) {
-        VideoGeneratorModule module = new VideoGeneratorModule();
-        stage.setScene(new Scene(module.getLayout(), 1024, 768));
+       // VideoGeneratorModule module = new VideoGeneratorModule();
+        MainDashboard dashboard = new MainDashboard();
+
+        stage.setScene(new Scene(dashboard.getContainer(), 1024, 768));
         stage.setTitle("MM PROG Project - Video Synthesis");
         stage.show();
+
+        stage.setOnCloseRequest(e -> dashboard.dispose());
     }
 
     public static void main(String[] args) { launch(args); }
