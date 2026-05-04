@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.Cursor?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ButtonBar?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.TilePane?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1500.0" style="-fx-background-color: black;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.EditController">
+    <top>
+        <AnchorPane prefHeight="75.0" prefWidth="1500.0" style="-fx-background-color: #18181b; -fx-border-color: #8b8b8b;" BorderPane.alignment="CENTER">
+            <children>
+                <Label layoutX="21.6" layoutY="24.0" prefHeight="32.0" prefWidth="146.0" text="PhotoApp" textFill="WHITE" AnchorPane.bottomAnchor="22.0" AnchorPane.leftAnchor="21.0" AnchorPane.rightAnchor="1333.0" AnchorPane.topAnchor="23.0">
+                    <font>
+                        <Font name="System Bold" size="20.0" />
+                    </font>
+                </Label>
+                <ButtonBar layoutX="168.0" layoutY="5.0" prefHeight="66.0" prefWidth="364.0" AnchorPane.leftAnchor="168.0" AnchorPane.topAnchor="5.0">
+                    <buttons>
+                        <Button fx:id="btnEdit" mnemonicParsing="false" onAction="#EditPage" prefWidth="204.0" style="-fx-background-color: #155dfc;" text="Edit" textFill="WHITE">
+                            <font>
+                                <Font size="16.0" />
+                            </font>
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
+                        </Button>
+                        <Button fx:id="btnMosaic" mnemonicParsing="false" onAction="#MosaicPage" style="-fx-background-color: #18181b;" text="Mosaic" textFill="WHITE">
+                            <font>
+                                <Font size="16.0" />
+                            </font>
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
+                        </Button>
+                        <Button fx:id="btnVideo" mnemonicParsing="false" onAction="#VideoPage" prefHeight="37.0" style="-fx-background-color: #18181b;" text="Video" textFill="WHITE">
+                            <font>
+                                <Font size="16.0" />
+                            </font>
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
+                        </Button>
+                    </buttons>
+                </ButtonBar>
+                <Button fx:id="btnBack" layoutX="1369.0" layoutY="20.0" mnemonicParsing="false" onAction="#btnBackClicked" prefHeight="38.0" prefWidth="95.0" style="-fx-background-color: #155dfc;" text="Back" textFill="WHITE">
+                    <font>
+                        <Font size="16.0" />
+                    </font>
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+                </Button>
+            </children>
+        </AnchorPane>
+    </top>
+    <bottom>
+        <AnchorPane prefHeight="75.0" prefWidth="1500.0" style="-fx-background-color: #18181b; -fx-border-color: #8b8b8b;" BorderPane.alignment="CENTER" />
+    </bottom>
+    <center>
+        <ImageView fx:id="imageView" fitHeight="646.0" fitWidth="898.0" pickOnBounds="true" preserveRatio="true" BorderPane.alignment="CENTER" />
+    </center>
+    <right>
+        <AnchorPane prefHeight="650.0" prefWidth="299.0" style="-fx-background-color: #18181b; -fx-border-color: #8b8b8b;" BorderPane.alignment="CENTER" />
+    </right>
+    <left>
+        <AnchorPane prefHeight="650.0" prefWidth="300.0" style="-fx-background-color: #18181b; -fx-border-color: #8b8b8b;" BorderPane.alignment="CENTER">
+            <children>
+                <Label layoutX="21.0" layoutY="14.0" text="Image Library" textFill="WHITE">
+                    <font>
+                        <Font name="System Bold" size="28.0" />
+                    </font>
+                </Label>
+                <Label fx:id="lblNoOfImages" layoutX="25.0" layoutY="61.0" text="0 image(s)" textFill="#969696">
+                    <font>
+                        <Font size="15.0" />
+                    </font>
+                </Label>
+                <ScrollPane fitToWidth="true" layoutX="12.0" layoutY="93.0" prefHeight="536.0" prefWidth="276.0" style="-fx-background-color: #18181b;">
+                    <content>
+                        <TilePane fx:id="editTilePane" hgap="10" prefColumns="1" prefTileHeight="140" prefTileWidth="260" style="-fx-background-color: #18181b;" vgap="10" />
+                    </content>
+                </ScrollPane>
+            </children>
+        </AnchorPane>
+    </left>
+</BorderPane>

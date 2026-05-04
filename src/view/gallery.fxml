@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.Cursor?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.TilePane?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1500.0" style="-fx-background-color: black;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.GalleryController">
+    <bottom>
+        <AnchorPane prefHeight="75.0" prefWidth="1500.0" style="-fx-background-color: #18181b; -fx-border-color: #8b8b8b;" BorderPane.alignment="CENTER" />
+    </bottom>
+    <top>
+        <AnchorPane prefHeight="75.0" prefWidth="1500.0" style="-fx-background-color: #18181b; -fx-border-color: #8b8b8b;" BorderPane.alignment="CENTER">
+            <children>
+                <Label layoutX="24.0" layoutY="22.0" text="PhotoApp" textFill="WHITE">
+                    <font>
+                        <Font name="System Bold" size="20.0" />
+                    </font>
+                </Label>
+                <Button fx:id="btnStartEditing" layoutX="1347.0" layoutY="19.0" mnemonicParsing="false" onAction="#btnStartEditingClicked" style="-fx-background-color: #155dfc;" text="Start Editing →" textFill="WHITE">
+                    <font>
+                        <Font size="16.0" />
+                    </font>
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+                </Button>
+            </children>
+        </AnchorPane>
+    </top>
+    <left>
+        <AnchorPane prefHeight="650.0" prefWidth="201.0" style="-fx-background-color: #18181b; -fx-border-color: #8b8b8b;" BorderPane.alignment="CENTER">
+            <children>
+                <Button fx:id="btnUpload" layoutX="37.0" layoutY="49.0" mnemonicParsing="false" onAction="#btnUploadClicked" prefHeight="41.0" prefWidth="126.0" style="-fx-background-color: #155dfc;" text="Upload" textFill="WHITE">
+                    <font>
+                        <Font size="16.0" />
+                    </font>
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+                </Button>
+            </children>
+        </AnchorPane>
+    </left>
+    <center>
+        <ScrollPane fitToHeight="true" fitToWidth="true" BorderPane.alignment="CENTER">
+
+            <content>
+                    <TilePane fx:id="tilePane" hgap="100" prefTileHeight="210" prefTileWidth="210" style="-fx-padding: 40; -fx-background-color: black;" vgap="100" />
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>
