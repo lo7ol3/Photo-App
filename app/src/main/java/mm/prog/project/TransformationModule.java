@@ -1,20 +1,31 @@
-import javafx.embed.swing.SwingFXUtils;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.*;
-import javafx.scene.image.*;
-import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.stage.FileChooser;
+package mm.prog.project;
+
 import java.awt.image.BufferedImage;
 import java.io.File;
+
 import javax.imageio.ImageIO;
+
+import javafx.embed.swing.SwingFXUtils;
+import javafx.geometry.Insets;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelReader;
+import javafx.scene.image.PixelWriter;
+import javafx.scene.image.WritableImage;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 
 public class TransformationModule {
     private BorderPane layout;
     private ImageView imageView = new ImageView();
     private BufferedImage originalImage;
     private BufferedImage processedImage;
+    private BufferedImage lastExtractedObject;
     
     private WritableImage overlay;
     private PixelWriter writer;
@@ -36,7 +47,7 @@ public class TransformationModule {
 
         // Center Area: StackPane for Image + Lasso Drawing
         imageView.setPreserveRatio(true);
-        imageView.setFitWidth(600);
+        imageView.setFitWidth(520);
         overlayView = new ImageView();
         StackPane stack = new StackPane(imageView, overlayView);
         stack.setStyle("-fx-background-color: #1a1a1a; -fx-border-color: #333;");
@@ -44,21 +55,22 @@ public class TransformationModule {
         setupLassoEvents(stack);
 
         // Right Panel: Controls
-        VBox rightPanel = new VBox(15);
-        rightPanel.setPadding(new Insets(20));
-        rightPanel.setPrefWidth(280);
+        VBox rightPanel = new VBox(12);
+        rightPanel.setPadding(new Insets(16));
+        rightPanel.setPrefWidth(220);
         rightPanel.setStyle("-fx-background-color: #1a1a1a;");
 
-        Button loadBtn = new Button("Upload Image");
-        loadBtn.setStyle("-fx-background-color: #0078D7; -fx-text-fill: white; -fx-pref-width: 240;");
+        Button loadBtn = new Button("📁 Load Local Image");
+        loadBtn.setStyle("-fx-background-color: #0078D7; -fx-text-fill: white; -fx-pref-width: 220;");
         loadBtn.setOnAction(e -> loadImage());
 
         // Sections
         VBox resizeBox = createSection("Resize", createResizeControls());
         VBox rotateBox = createSection("Rotation", createRotationControls());
+        VBox translateBox = createSection("Translation", createTranslationControls());
         VBox extractBox = createSection("Object Extraction", createExtractionControls());
 
-        rightPanel.getChildren().addAll(loadBtn, resizeBox, rotateBox, extractBox);
+        rightPanel.getChildren().addAll(loadBtn, resizeBox, rotateBox, translateBox, extractBox);
         
         layout.setCenter(stack);
         layout.setRight(rightPanel);
@@ -94,14 +106,20 @@ public class TransformationModule {
         TextField hField = new TextField(); hField.setPromptText("Height");
         Button apply = new Button("Apply Resize");
         apply.setOnAction(e -> {
-            int w = Integer.parseInt(wField.getText());
-            int h = Integer.parseInt(hField.getText());
-            BufferedImage resized = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-            java.awt.Graphics2D g = resized.createGraphics();
-            g.drawImage(originalImage, 0, 0, w, h, null);
-            g.dispose();
-            processedImage = resized;
-            imageView.setImage(SwingFXUtils.toFXImage(resized, null));
+            if (originalImage == null) return;
+            try {
+                int w = Integer.parseInt(wField.getText().trim());
+                int h = Integer.parseInt(hField.getText().trim());
+                if (w <= 0 || h <= 0) return;
+                BufferedImage resized = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+                java.awt.Graphics2D g = resized.createGraphics();
+                g.drawImage(originalImage, 0, 0, w, h, null);
+                g.dispose();
+                processedImage = resized;
+                imageView.setImage(SwingFXUtils.toFXImage(resized, null));
+            } catch (NumberFormatException ex) {
+                // invalid input, ignore or show validation feedback later
+            }
         });
         return new VBox(5, new Label("Width:"), wField, new Label("Height:"), hField, apply);
     }
@@ -117,10 +135,12 @@ public class TransformationModule {
     private VBox createExtractionControls() {
         Button eyedropBtn = new Button("Eyedropper Mode");
         Button extractBtn = new Button("Extract Object");
+        Button saveExtractBtn = new Button("Save Extracted Object");
         Button clearBtn = new Button("Clear Selection");
         
         eyedropBtn.setOnAction(e -> eyedropperMode = true);
         extractBtn.setOnAction(e -> extractUsingMask());
+        saveExtractBtn.setOnAction(e -> saveExtractedObject());
         clearBtn.setOnAction(e -> clearMask());
 
         imageView.setOnMouseClicked(e -> {
@@ -133,7 +153,57 @@ public class TransformationModule {
             eyedropperMode = false;
         });
 
-        return new VBox(5, eyedropBtn, extractBtn, clearBtn);
+        return new VBox(5, eyedropBtn, extractBtn, saveExtractBtn, clearBtn);
+    }
+
+    private VBox createTranslationControls() {
+        TextField xField = new TextField();
+        xField.setPromptText("Shift X");
+        TextField yField = new TextField();
+        yField.setPromptText("Shift Y");
+        Button apply = new Button("Apply Translation");
+        apply.setOnAction(e -> applyTranslation(xField.getText(), yField.getText()));
+        return new VBox(5, new Label("Offset X:"), xField, new Label("Offset Y:"), yField, apply);
+    }
+
+    private void applyTranslation(String xText, String yText) {
+        if (originalImage == null) return;
+        int offsetX = 0;
+        int offsetY = 0;
+        try {
+            offsetX = Integer.parseInt(xText.trim());
+            offsetY = Integer.parseInt(yText.trim());
+        } catch (NumberFormatException ex) {
+            return;
+        }
+
+        int w = originalImage.getWidth();
+        int h = originalImage.getHeight();
+        BufferedImage translated = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        java.awt.Graphics2D g = translated.createGraphics();
+        g.setBackground(new java.awt.Color(0, 0, 0, 0));
+        g.clearRect(0, 0, w, h);
+        g.drawImage(originalImage, offsetX, offsetY, null);
+        g.dispose();
+
+        processedImage = translated;
+        imageView.setImage(SwingFXUtils.toFXImage(translated, null));
+    }
+
+    private void saveExtractedObject() {
+        BufferedImage imageToSave = lastExtractedObject != null ? lastExtractedObject : processedImage;
+        if (imageToSave == null) return;
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Save Extracted Object");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG Files", "*.png"));
+        File file = chooser.showSaveDialog(layout.getScene().getWindow());
+        if (file != null) {
+            try {
+                ImageIO.write(imageToSave, "png", file);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     // Logic Methods (Adapted from your Module 3)
@@ -145,17 +215,13 @@ public class TransformationModule {
                 originalImage = ImageIO.read(file);
                 processedImage = originalImage;
                 imageView.setImage(SwingFXUtils.toFXImage(originalImage, null));
-                maskWidth = (int) imageView.getBoundsInLocal().getWidth();
-                maskHeight = (int) (maskWidth * originalImage.getHeight() / originalImage.getWidth());
-                overlay = new WritableImage(maskWidth, maskHeight);
-                writer = overlay.getPixelWriter();
-                overlayView.setImage(overlay);
-                mask = new boolean[maskWidth][maskHeight];
+                initializeOverlay();
             } catch (Exception e) { e.printStackTrace(); }
         }
     }
 
     private void drawLine(int x1, int y1, int x2, int y2) {
+        if (writer == null || mask == null) return;
         int dx = Math.abs(x2 - x1);
         int dy = Math.abs(y2 - y1);
         int sx = x1 < x2 ? 1 : -1;
@@ -179,7 +245,7 @@ public class TransformationModule {
     }
 
     private void extractUsingMask() {
-        if (originalImage == null) return;
+        if (originalImage == null || mask == null) return;
         boolean[][] region = fillRegion(mask);
         int w = originalImage.getWidth();
         int h = originalImage.getHeight();
@@ -196,9 +262,12 @@ public class TransformationModule {
                     int diff = Math.abs(pixel.getRed() - target.getRed()) + Math.abs(pixel.getGreen() - target.getGreen()) + Math.abs(pixel.getBlue() - target.getBlue());
                     if (diff < 180) result.setRGB(x, y, originalImage.getRGB(x, y));
                     else result.setRGB(x, y, 0x00000000);
+                } else {
+                    result.setRGB(x, y, 0x00000000);
                 }
             }
         }
+        lastExtractedObject = result;
         processedImage = result;
         imageView.setImage(SwingFXUtils.toFXImage(result, null));
     }
@@ -237,7 +306,7 @@ public class TransformationModule {
         int w = originalImage.getWidth();
         int h = originalImage.getHeight();
         WritableImage preview = new WritableImage(w, h);
-        PixelReader reader = imageView.getImage().getPixelReader();
+        PixelReader reader = SwingFXUtils.toFXImage(originalImage, null).getPixelReader();
         PixelWriter pw = preview.getPixelWriter();
 
         for (int y = 0; y < h; y++) {
@@ -268,8 +337,46 @@ public class TransformationModule {
         return box;
     }
 
-    private int toX(double x) { return (int) (x * imageView.getImage().getWidth() / imageView.getBoundsInLocal().getWidth()); }
-    private int toY(double y) { return (int) (y * imageView.getImage().getHeight() / imageView.getBoundsInLocal().getHeight()); }
+    private void initializeOverlay() {
+        if (originalImage == null) return;
+        maskWidth = (int) imageView.getBoundsInLocal().getWidth();
+        if (maskWidth <= 0) maskWidth = originalImage.getWidth();
+        maskHeight = (int) (maskWidth * originalImage.getHeight() / originalImage.getWidth());
+        if (maskHeight <= 0) maskHeight = originalImage.getHeight();
+        overlay = new WritableImage(maskWidth, maskHeight);
+        writer = overlay.getPixelWriter();
+        overlayView.setImage(overlay);
+        overlayView.setMouseTransparent(true);
+        mask = new boolean[maskWidth][maskHeight];
+    }
+
+    private int toX(double x) {
+        if (imageView.getImage() == null) return 0;
+        double displayWidth = imageView.getBoundsInLocal().getWidth();
+        if (displayWidth <= 0) displayWidth = imageView.getImage().getWidth();
+        return (int) (x * imageView.getImage().getWidth() / displayWidth);
+    }
+
+    private int toY(double y) {
+        if (imageView.getImage() == null) return 0;
+        double displayHeight = imageView.getBoundsInLocal().getHeight();
+        if (displayHeight <= 0) displayHeight = imageView.getImage().getHeight();
+        return (int) (y * imageView.getImage().getHeight() / displayHeight);
+    }
 
     public BorderPane getLayout() { return layout; }
+
+    public void loadImage(String path) {
+        if (path == null || path.isBlank()) return;
+        File file = new File(path);
+        if (!file.exists()) return;
+        try {
+            originalImage = ImageIO.read(file);
+            processedImage = originalImage;
+            imageView.setImage(SwingFXUtils.toFXImage(originalImage, null));
+            initializeOverlay();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

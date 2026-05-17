@@ -1,16 +1,33 @@
-import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc; // Added for color calculation
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
+package mm.prog.project;
+
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.File; // Added for color calculation
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+
+import javax.imageio.ImageIO;
+
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+
+import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 public class MosaicModule {
     private int tileSize = 20; 
     private final List<Mat> tileLibrary = new ArrayList<>();
     private final ImageView mosaicView;
+    private Image lastMosaicImage;
+    private Consumer<String> onMosaicSaved;
 
     public MosaicModule(ImageView mosaicView) {
         this.mosaicView = mosaicView;
@@ -50,6 +67,7 @@ public class MosaicModule {
         }
 
         mosaicView.setImage(matToImage(result));
+        lastMosaicImage = matToImage(result);
         result.release();
         target.release();
     }
@@ -64,6 +82,21 @@ public class MosaicModule {
         Mat tile = Imgcodecs.imread(path);
         if (!tile.empty()) tileLibrary.add(tile);
     }
+
+    public boolean saveDisplayedMosaic(File file) {
+        if (lastMosaicImage == null || file == null) return false;
+        try {
+            BufferedImage bImage = SwingFXUtils.fromFXImage(lastMosaicImage, null);
+            ImageIO.write(bImage, "png", file);
+            if (onMosaicSaved != null) onMosaicSaved.accept(file.getAbsolutePath());
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public void setOnMosaicSaved(Consumer<String> handler) { this.onMosaicSaved = handler; }
 
     public void dispose() {
         for (Mat m : tileLibrary) m.release();

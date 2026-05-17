@@ -1,11 +1,19 @@
-
+package mm.prog.project;
 
 import java.io.File;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ColorPicker;
+import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
+import javafx.scene.control.Slider;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 
@@ -29,6 +37,12 @@ public class ImageEditorModule {
         createUI();
     }
 
+    private Runnable onBackHandler;
+    public void setOnBack(Runnable handler) { this.onBackHandler = handler; }
+
+    private java.util.function.Consumer<String> onSaveHandler;
+    public void setOnSave(java.util.function.Consumer<String> handler) { this.onSaveHandler = handler; }
+
     private void createUI() {
         layout = new BorderPane();
         layout.setStyle("-fx-background-color: #121212;");
@@ -43,10 +57,14 @@ public class ImageEditorModule {
 
         // Right: Control Panel
         controlPanel = createControlPanel();
-        layout.setRight(controlPanel);
+        javafx.scene.control.ScrollPane sidebarScroll = new javafx.scene.control.ScrollPane(controlPanel);
+        sidebarScroll.setFitToWidth(true);
+        sidebarScroll.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+        sidebarScroll.setStyle("-fx-background: #1a1a1a; -fx-background-color: #1a1a1a; -fx-border-color: transparent;");
+        layout.setRight(sidebarScroll);
 
         // Bottom: Status Bar
-        statusLabel = new Label("Ready - Load an image to start editing");
+        statusLabel = new Label("Ready - choose a repository image to start editing");
         statusLabel.setStyle("-fx-text-fill: #aaa; -fx-padding: 10;");
         layout.setBottom(statusLabel);
     }
@@ -59,11 +77,17 @@ public class ImageEditorModule {
         Label title = new Label("DIP Editor Module");
         title.setStyle("-fx-text-fill: white; -fx-font-size: 26px; -fx-font-weight: bold;");
 
-        Button loadButton = new Button("📁 Load Image");
+        Button loadButton = new Button("📁 Load Local Image");
         loadButton.setStyle("-fx-background-color: #0078D7; -fx-text-fill: white; -fx-padding: 10 20; -fx-font-size: 14px;");
         loadButton.setOnAction(e -> loadImage());
 
-        header.getChildren().addAll(title, loadButton);
+        Button backButton = new Button("← Back");
+        backButton.setStyle("-fx-background-color: #666; -fx-text-fill: white; -fx-padding: 8 14;");
+        backButton.setOnAction(e -> {
+            if (onBackHandler != null) onBackHandler.run();
+        });
+
+        header.getChildren().addAll(backButton, title, loadButton);
         return header;
     }
 
@@ -73,18 +97,18 @@ public class ImageEditorModule {
         imageArea.setPadding(new Insets(20));
 
         imageView = new ImageView();
-        imageView.setFitWidth(600);
-        imageView.setFitHeight(400);
+        imageView.setFitWidth(520);
+        imageView.setFitHeight(340);
         imageView.setPreserveRatio(true);
-        imageView.setStyle("-fx-border-color: #333; -fx-border-width: 2;");
+        imageView.setStyle("-fx-border-color: #333; -fx-border-width: 2; -fx-background-color: #101820;");
 
         // Placeholder
         Label placeholder = new Label("No image loaded\nClick 'Load Image' to start");
         placeholder.setStyle("-fx-text-fill: #666; -fx-font-size: 16px; -fx-text-alignment: center;");
         
         StackPane imageContainer = new StackPane();
-        imageContainer.setPrefSize(620, 420);
-        imageContainer.setMaxSize(620.,420);
+        imageContainer.setPrefSize(540, 360);
+        imageContainer.setMaxSize(540, 360);
         imageContainer.setStyle("-fx-background-color: #2a2a2a; -fx-border-color: #444; -fx-border-width: 1; ");
 
 
@@ -97,7 +121,9 @@ public class ImageEditorModule {
     private VBox createControlPanel() {
         VBox panel = new VBox(15);
         panel.setPadding(new Insets(20));
-        panel.setPrefWidth(250);
+        
+        // MODIFIED: Increased width from 220 to 280 so slider numbers don't get cut off
+        panel.setPrefWidth(280); 
         panel.setStyle("-fx-background-color: #1a1a1a;");
 
         Label controlTitle = new Label("Image Controls");
@@ -119,7 +145,6 @@ public class ImageEditorModule {
 
         return panel;
     }
-
     private VBox createBasicControls() {
         VBox basic = new VBox(10);
         
@@ -373,6 +398,7 @@ public class ImageEditorModule {
             if (file != null) {
                 boolean success = imageProcessor.saveImage(file.getAbsolutePath());
                 statusLabel.setText(success ? "Image saved successfully" : "Error saving image");
+                    if (success && onSaveHandler != null) onSaveHandler.accept(file.getAbsolutePath());
             }
         }
     }
@@ -397,6 +423,23 @@ public class ImageEditorModule {
 
     public BorderPane getLayout() {
         return layout;
+    }
+
+    public void loadImage(String path) {
+        if (path == null || path.isBlank()) return;
+        File file = new File(path);
+        if (!file.exists()) {
+            statusLabel.setText("Repository image not found.");
+            return;
+        }
+        boolean success = imageProcessor.loadImage(path);
+        if (success) {
+            updateImageDisplay();
+            statusLabel.setText("Loaded repository image: " + file.getName());
+            enableControls(true);
+        } else {
+            statusLabel.setText("Error loading repository image: " + file.getName());
+        }
     }
 
     public void dispose() {

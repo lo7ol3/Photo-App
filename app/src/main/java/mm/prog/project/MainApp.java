@@ -30,11 +30,13 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) {
-       // VideoGeneratorModule module = new VideoGeneratorModule();
         MainDashboard dashboard = new MainDashboard();
-
-        stage.setScene(new Scene(dashboard.getContainer(), 1024, 768));
-        stage.setTitle("MM PROG Project - Video Synthesis");
+        Scene scene = new Scene(dashboard.getContainer(), 1280, 860);
+        stage.setScene(scene);
+        stage.setTitle("Photo Editing App");
+        stage.setMinWidth(1100);
+        stage.setMinHeight(760);
+        stage.setMaximized(true);
         stage.show();
 
         stage.setOnCloseRequest(e -> dashboard.dispose());
