@@ -40,6 +40,7 @@ public class Image_Editing {
     // Current adjustment values for sliders
     private double currentBrightness = 0.0;
     private double currentContrast = 1.0;
+    private int currentBlurRadius = 1;
     private boolean isGrayscale = false;
     
     // Border properties
@@ -133,15 +134,20 @@ public class Image_Editing {
      */
     private void applyAllAdjustments() {
         if (originalMat.empty()) return;
-        
+
         // Start with original image
         originalMat.copyTo(currentMat);
-        
+
         // Apply brightness and contrast using OpenCV
         if (currentBrightness != 0.0 || currentContrast != 1.0) {
             currentMat.convertTo(currentMat, -1, currentContrast, currentBrightness * 255);
         }
-        
+
+        // --- ADD THIS BLUR FILTER STEP TO THE PIPELINE ---
+        if (currentBlurRadius > 1) {
+            Imgproc.GaussianBlur(currentMat, currentMat, new Size(currentBlurRadius, currentBlurRadius), 0);
+        }
+
         // Apply grayscale conversion
         if (isGrayscale) {
             Mat grayMat = new Mat();
@@ -149,14 +155,35 @@ public class Image_Editing {
             Imgproc.cvtColor(grayMat, currentMat, Imgproc.COLOR_GRAY2BGR);
             grayMat.release();
         }
-        
+
         // Apply border
         if (borderWidth > 0) {
             applyImageBorder();
         }
-        
+
         // Update JavaFX display image
         updateJavaFXImage();
+    }
+    
+    /**
+    * Unified pipeline method called by the UI controls to apply all parameters at once
+    */
+    public void applySettings(double brightness, double contrast, boolean grayscale, int blurRadius, int borderSize, Color fxColor) {
+        // Convert UI slider scale (-255 to 255) to class internal scale (-1.0 to 1.0)
+        this.currentBrightness = brightness / 255.0;
+        this.currentContrast = contrast;
+        this.isGrayscale = grayscale;
+        this.currentBlurRadius = blurRadius;
+        this.borderWidth = borderSize;
+
+        // Convert JavaFX Color to OpenCV Scalar (BGR format)
+        int red = (int)(fxColor.getRed() * 255);
+        int green = (int)(fxColor.getGreen() * 255);
+        int blue = (int)(fxColor.getBlue() * 255);
+        this.borderColor = new Scalar(blue, green, red);
+
+        // Execute the unified pipeline
+        applyAllAdjustments();
     }
     
     /**
