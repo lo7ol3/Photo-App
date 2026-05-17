@@ -1,6 +1,3 @@
-package mm.prog.project;
-
-
 
 import java.io.File;
 
@@ -33,7 +30,8 @@ public class MainApp extends Application {
        // VideoGeneratorModule module = new VideoGeneratorModule();
         MainDashboard dashboard = new MainDashboard();
 
-        stage.setScene(new Scene(dashboard.getContainer(), 1024, 768));
+        // Changed dashboard.getContainer() to dashboard.getLayout()
+        stage.setScene(new Scene(dashboard.getLayout(), 1024, 768));
         stage.setTitle("MM PROG Project - Video Synthesis");
         stage.show();
 
