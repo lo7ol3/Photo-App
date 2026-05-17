@@ -1,116 +1,105 @@
-package mm.prog.project;
-
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.stage.FileChooser;
-import java.io.File;
+import model.SharedData;
 
 public class MainDashboard {
+    
     private BorderPane root;
+    private RepositoryModule repositoryModule; 
     private VideoGeneratorModule videoModule;
     private ImageEditorModule imageEditorModule;
     private TransformationModule transformationModule;
     private MosaicModule mosaicModule;
-    private String selectedMosaicPath = ""; 
+    private ShareModule shareModule;
+    private LoadImageTab loadImageTab;
 
     public MainDashboard() {
         root = new BorderPane();
         
+        // Initialize central storage and operational workspaces
+        repositoryModule = new RepositoryModule();
         videoModule = new VideoGeneratorModule();
         imageEditorModule = new ImageEditorModule();
         transformationModule = new TransformationModule();
+        shareModule = new ShareModule();
+        loadImageTab = new LoadImageTab(this);
         
         ImageView mosaicImageView = new ImageView();
         mosaicImageView.setFitWidth(700);
         mosaicImageView.setPreserveRatio(true);
         mosaicModule = new MosaicModule(mosaicImageView);
         
-        // Setup Navigation
+        // Navigation bar architecture
         HBox navBar = new HBox(15);
         navBar.setPadding(new Insets(15));
-        navBar.setStyle("-fx-background-color: #333;");
+        navBar.setStyle("-fx-background-color: #222;");
         
+        Button btnLoadTab = new Button("📂 Load Image Hub");
+        Button btnRepository = new Button("🗄️ Repository");
         Button btnEditor = new Button("DIP Editor");
         Button btnTransformation = new Button("Transformation");
         Button btnMosaic = new Button("Image Mosaic");
+        Button btnShare = new Button("🔗 Share");
+        btnShare.setStyle("-fx-background-color: #25d366; -fx-text-fill: black; -fx-font-weight: bold;");
         Button btnVideo = new Button("Video Generator");
         
-        // REQUIREMENT 2.5: Global Share Button
-        Button btnShare = new Button("📤 Share");
-        btnShare.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-padding: 8 15;");
-        btnShare.setOnAction(e -> showShareDialog("General App Share", "Check out my Multimedia Project creations!"));
-
-        String style = "-fx-background-color: #555; -fx-text-fill: white; -fx-padding: 8 15;";
-        btnEditor.setStyle(style);
-        btnTransformation.setStyle(style);
-        btnMosaic.setStyle(style);
-        btnVideo.setStyle("-fx-background-color: #0078D7; -fx-text-fill: white; -fx-padding: 8 15;");
-
-        navBar.getChildren().addAll(btnEditor, btnTransformation, btnMosaic, btnVideo, btnShare);
-        root.setTop(navBar);
-
+        // Assign visual styles to navigation buttons
+        String btnStyle = "-fx-background-color: #444; -fx-text-fill: white; -fx-font-weight: bold;";
+        btnLoadTab.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnEditor.setStyle(btnStyle);
+        btnTransformation.setStyle(btnStyle);
+        btnMosaic.setStyle(btnStyle);
+        btnVideo.setStyle(btnStyle);
+        
+        // Dynamic Workspace Views Switching
+        btnLoadTab.setOnAction(e -> root.setCenter(loadImageTab.getLayout()));
         btnEditor.setOnAction(e -> root.setCenter(imageEditorModule.getLayout()));
         btnTransformation.setOnAction(e -> root.setCenter(transformationModule.getLayout()));
+        btnMosaic.setOnAction(e -> root.setCenter(createMosaicLayout(mosaicImageView)));
+        btnShare.setOnAction(e -> root.setCenter(shareModule.getLayout()));
         btnVideo.setOnAction(e -> root.setCenter(videoModule.getLayout()));
-        btnMosaic.setOnAction(e -> root.setCenter(createMosaicTabLayout(mosaicImageView)));
-
-        root.setCenter(videoModule.getLayout());
+        btnRepository.setOnAction(e -> root.setCenter(repositoryModule.getLayout()));
+        
+        navBar.getChildren().addAll(btnLoadTab, btnEditor,btnRepository, btnTransformation, btnMosaic, btnVideo, btnShare);
+        root.setTop(navBar);
+        
+        // Default execution view
+        root.setCenter(repositoryModule.getLayout());
     }
 
-    // Social Integration Dialog
-    private void showShareDialog(String subject, String defaultMsg) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Social Integration");
-        alert.setHeaderText("External Distribution");
-        alert.setContentText("Choose a platform to share your content:");
-
-        ButtonType emailBtn = new ButtonType("Email");
-        ButtonType whatsappBtn = new ButtonType("WhatsApp");
-        ButtonType closeBtn = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);
-
-        alert.getButtonTypes().setAll(emailBtn, whatsappBtn, closeBtn);
-
-        alert.showAndWait().ifPresent(type -> {
-            if (type == emailBtn) ShareService.shareViaEmail(subject, defaultMsg);
-            else if (type == whatsappBtn) ShareService.shareViaWhatsApp(defaultMsg);
-        });
-    }
-
-    private VBox createMosaicTabLayout(ImageView mosaicImageView) {
-        VBox layout = new VBox(20);
+    private VBox createMosaicLayout(ImageView mosaicImageView) {
+        VBox layout = new VBox(15);
         layout.setPadding(new Insets(20));
-        layout.setAlignment(Pos.TOP_CENTER);
         layout.setStyle("-fx-background-color: #121212;");
-
-        HBox controlBar = new HBox(20);
-        controlBar.setAlignment(Pos.CENTER);
-
-        Button btnLoad = new Button("📁 Load Image");
-        btnLoad.setOnAction(e -> {
-            FileChooser chooser = new FileChooser();
-            File file = chooser.showOpenDialog(root.getScene().getWindow());
-            if (file != null) selectedMosaicPath = file.getAbsolutePath();
-        });
+        
+        HBox controlBar = new HBox(15);
+        controlBar.setAlignment(Pos.CENTER_LEFT);
 
         ComboBox<Integer> sizePicker = new ComboBox<>();
         sizePicker.getItems().addAll(10, 20, 30);
         sizePicker.setValue(20); 
         sizePicker.setOnAction(e -> mosaicModule.setTileSize(sizePicker.getValue()));
 
+        Label sizeLabel = new Label("Tile Size:");
+        sizeLabel.setStyle("-fx-text-fill: white;");
+
         Button btnGenerate = new Button("⚙ Generate Mosaic");
-        btnGenerate.setStyle("-fx-background-color: #28a745; -fx-text-fill: white;");
+        btnGenerate.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold;");
+        
+        // Pulls dynamic target path directly out of global SharedData registry
         btnGenerate.setOnAction(e -> {
-            if (!selectedMosaicPath.isEmpty()) mosaicModule.generateMosaic(selectedMosaicPath);
+            if (SharedData.selectedImagePath != null && !SharedData.selectedImagePath.isEmpty()) {
+                mosaicModule.generateMosaic(SharedData.selectedImagePath);
+            } else {
+                Alert alert = new Alert(Alert.AlertType.WARNING, "Please go to the 'Load Image Hub' tab and select an image workspace first!");
+                alert.showAndWait();
+            }
         });
 
-        // Tab-Specific Share
-        Button btnTabShare = new Button("📤 Share Mosaic");
-        btnTabShare.setOnAction(e -> showShareDialog("My Image Mosaic", "Look at this mosaic I generated with a tile size of " + sizePicker.getValue()));
-
-        controlBar.getChildren().addAll(btnLoad, sizePicker, btnGenerate, btnTabShare);
+        controlBar.getChildren().addAll(sizeLabel, sizePicker, btnGenerate);
 
         StackPane display = new StackPane(mosaicImageView);
         display.setStyle("-fx-background-color: #1a1a1a; -fx-border-color: #333;");
@@ -119,11 +108,23 @@ public class MainDashboard {
         layout.getChildren().addAll(controlBar, display);
         return layout;
     }
-
-    public BorderPane getContainer() { return root; }
     
     public void dispose() {
-        if (imageEditorModule != null) imageEditorModule.dispose();
-        if (mosaicModule != null) mosaicModule.dispose();
+        if (imageEditorModule != null) {
+            imageEditorModule.dispose();
+        }
     }
+    
+    public BorderPane getContainer() {
+        return this.root;
+    }
+    
+    public BorderPane getLayout() {
+        return this.root;
+    }
+    
+    public RepositoryModule getRepositoryModule() {
+        return this.repositoryModule;
+    }
+
 }
