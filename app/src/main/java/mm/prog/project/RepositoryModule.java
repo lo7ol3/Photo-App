@@ -30,7 +30,7 @@ public class RepositoryModule {
 
     public RepositoryModule() {
         createUI();
-        loadData(); // Automatically recover any previously loaded images and annotations on launch
+        loadData(); 
     }
 
     private void createUI() {
@@ -38,7 +38,6 @@ public class RepositoryModule {
         layout.setPrefSize(1500, 800);
         layout.setStyle("-fx-background-color: black;");
 
-        // --- TOP HEADER ARCHITECTURE CONTROL BAR ---
         AnchorPane topPane = new AnchorPane();
         topPane.setPrefHeight(75);
         topPane.setStyle("-fx-background-color: #18181b; -fx-border-color: #333333; -fx-border-width: 0 0 1 0;");
@@ -46,17 +45,17 @@ public class RepositoryModule {
         Label title = new Label("Image Repository Archive");
         title.setTextFill(Color.WHITE);
         title.setFont(Font.font("System Bold", 20));
-        title.setLayoutX(24);
-        title.setLayoutY(22);
+        
+        AnchorPane.setLeftAnchor(title, 24.0);
+        AnchorPane.setTopAnchor(title, 22.0);
 
-        // Explicitly named button that browses local file system storage files
-        Button btnLoadImage = new Button("Load Image");
-        btnLoadImage.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20;");
-        btnLoadImage.setLayoutX(1320); // Positions it perfectly on the right-hand layout header section
-        btnLoadImage.setLayoutY(18);
+        Button btnLoadImage = new Button("📂 Load Image");
+        btnLoadImage.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 4;");
         btnLoadImage.setCursor(Cursor.HAND);
 
-        // Ingestion trigger loop supporting multi-file selection via Shift/Ctrl key selections
+        AnchorPane.setRightAnchor(btnLoadImage, 25.0);
+        AnchorPane.setTopAnchor(btnLoadImage, 18.0);
+
         btnLoadImage.setOnAction(e -> {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Select Local Images to Add into Repository");
@@ -64,12 +63,10 @@ public class RepositoryModule {
                 new FileChooser.ExtensionFilter("Image Files System Matrix", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif")
             );
 
-            // Prompts explorer window layer for multi selection inputs
             List<File> selectedFiles = fileChooser.showOpenMultipleDialog(layout.getScene().getWindow());
             
             if (selectedFiles != null && !selectedFiles.isEmpty()) {
                 for (File file : selectedFiles) {
-                    // Normalize native path structure cleanly
                     String pathString = file.getAbsolutePath();
                     registerNewImage(pathString);
                 }
@@ -79,7 +76,6 @@ public class RepositoryModule {
         topPane.getChildren().addAll(title, btnLoadImage);
         layout.setTop(topPane);
 
-        // --- CENTER DECK GRID PRESENTATION MATRIX PANEL ---
         tilePane = new TilePane();
         tilePane.setHgap(40); 
         tilePane.setVgap(40);
@@ -96,9 +92,19 @@ public class RepositoryModule {
         layout.setCenter(scrollPane);
     }
 
+    // --- Added: This filters for the images that have the heart icons! ---
+    public List<String> getAnnotatedFavoriteImages() {
+        List<String> favorites = new ArrayList<>();
+        for (ImageData data : imageList) {
+            if (data.hasAnnotation) {
+                favorites.add(data.imagePath);
+            }
+        }
+        return favorites;
+    }
+
     public void addImageToUI(ImageData data) {
         try {
-            // Read target resource cleanly via local File conversion utilities
             File imgFile = new File(data.imagePath);
             Image image = new Image(imgFile.toURI().toString());
             ImageView imageView = new ImageView(image);
@@ -107,14 +113,12 @@ public class RepositoryModule {
             imageView.setFitHeight(200);
             imageView.setPreserveRatio(true);
 
-            // Annotation presence visual heart tracker component
             Label heart = new Label("♥");
             heart.setStyle("-fx-text-fill: red; -fx-font-size: 25;");
             StackPane.setAlignment(heart, Pos.TOP_RIGHT);
             StackPane.setMargin(heart, new Insets(0, 8, 0, 0));
             heart.setVisible(data.hasAnnotation);
 
-            // Annotations modification utility dialogue pop-up anchor button
             Button editBtn = new Button("✍");
             editBtn.setTextFill(Color.WHITE);
             editBtn.setFont(Font.font(16));
@@ -129,7 +133,6 @@ public class RepositoryModule {
             container.getChildren().addAll(imageView, heart, editBtn);
             container.setCursor(Cursor.HAND);
 
-            // Dynamic Hover Tooltip update infrastructure mapping logic chains
             Tooltip tooltip = new Tooltip(data.annotation == null || data.annotation.isEmpty() ? "No annotation" : data.annotation);
             tooltip.setStyle("-fx-font-size: 14px;");
             Tooltip.install(container, tooltip);
@@ -138,7 +141,6 @@ public class RepositoryModule {
                 tooltip.setText(data.annotation == null || data.annotation.isEmpty() ? "No annotation" : data.annotation);
             });
 
-            // Card highlight tracking focus block triggers
             container.setOnMouseClicked(e -> {
                 if (selectedContainer != null) {
                     selectedContainer.setStyle("-fx-border-color: #444; -fx-border-width: 2; -fx-background-color: #111;");
@@ -147,16 +149,13 @@ public class RepositoryModule {
                 container.setStyle("-fx-border-color: yellow; -fx-border-width: 3; -fx-background-color: #111;");
                 selectedContainer = container;
 
-                // 1. Update the shared global state path value
                 SharedData.selectedImagePath = data.imagePath;
-
-                // 2. Alert all active listening tabs to refresh their workspace views immediately!
                 SharedData.setSelectedImagePath(data.imagePath);
             });
 
             tilePane.getChildren().add(container);
         } catch (Exception ex) {
-            System.err.println("Could not parse file index layout thumbnail card: " + ex.getMessage());
+            System.err.println("Could not parse file thumbnail card: " + ex.getMessage());
         }
     }
 
@@ -179,7 +178,7 @@ public class RepositoryModule {
             data.annotation = text;
             data.hasAnnotation = text != null && !text.trim().isEmpty();
             heart.setVisible(data.hasAnnotation);
-            saveData(); // Commit modifications instantly back over JSON disk storage assets 
+            saveData(); 
         });
     }
 
@@ -187,7 +186,7 @@ public class RepositoryModule {
         try (FileWriter writer = new FileWriter(FILE_PATH)) {
             gson.toJson(imageList, writer);
         } catch (Exception e) {
-            System.err.println("Persistent save failure mapping state parameters: " + e.getMessage());
+            System.err.println("Persistent save failure: " + e.getMessage());
         }
     }
 
@@ -210,14 +209,13 @@ public class RepositoryModule {
                 addImageToUI(data);
             }
         } catch (Exception e) {
-            System.err.println("Persistent tracking data initialization failed: " + e.getMessage());
+            System.err.println("Persistent data initialization failed: " + e.getMessage());
         }
     }
     
     public void registerNewImage(String path) {
         if (path == null || path.trim().isEmpty()) return;
         
-        // Block exact path duplicates within active file indices
         for (ImageData existing : imageList) {
             if (existing.imagePath.equalsIgnoreCase(path)) return;
         }
