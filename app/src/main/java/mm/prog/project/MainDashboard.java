@@ -1,9 +1,10 @@
+package mm.prog.project;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import model.SharedData;
 
 public class MainDashboard {
     
@@ -74,22 +75,71 @@ public class MainDashboard {
         VBox layout = new VBox(15);
         layout.setPadding(new Insets(20));
         layout.setStyle("-fx-background-color: #121212;");
-        
-        HBox controlBar = new HBox(15);
-        controlBar.setAlignment(Pos.CENTER_LEFT);
 
-        ComboBox<Integer> sizePicker = new ComboBox<>();
-        sizePicker.getItems().addAll(10, 20, 30);
-        sizePicker.setValue(20); 
-        sizePicker.setOnAction(e -> mosaicModule.setTileSize(sizePicker.getValue()));
+        // Title
+        Label title = new Label("🎨 Image Mosaic Generator");
+        title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
+
+        // First control row - Tile Size and Shape Selection
+        HBox controlRow1 = new HBox(15);
+        controlRow1.setAlignment(Pos.CENTER_LEFT);
 
         Label sizeLabel = new Label("Tile Size:");
         sizeLabel.setStyle("-fx-text-fill: white;");
 
-        Button btnGenerate = new Button("⚙ Generate Mosaic");
-        btnGenerate.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold;");
-        
-        // Pulls dynamic target path directly out of global SharedData registry
+        ComboBox<Integer> sizePicker = new ComboBox<>();
+        sizePicker.getItems().addAll(10, 15, 20, 25, 30, 35, 40);
+        sizePicker.setValue(20);
+        sizePicker.setOnAction(e -> mosaicModule.setTileSize(sizePicker.getValue()));
+
+        Label shapeLabel = new Label("Shape:");
+        shapeLabel.setStyle("-fx-text-fill: white;");
+
+        ComboBox<MosaicModule.MosaicShape> shapePicker = new ComboBox<>();
+        shapePicker.getItems().addAll(mosaicModule.getAvailableShapes());
+        shapePicker.setValue(MosaicModule.MosaicShape.RECTANGLE);
+        shapePicker.setOnAction(e -> mosaicModule.setMosaicShape(shapePicker.getValue()));
+
+        controlRow1.getChildren().addAll(sizeLabel, sizePicker, shapeLabel, shapePicker);
+
+        // Second control row - Image source selection
+        HBox controlRow2 = new HBox(15);
+        controlRow2.setAlignment(Pos.CENTER_LEFT);
+
+        CheckBox useRepositoryCheck = new CheckBox("Use Repository Images");
+        useRepositoryCheck.setStyle("-fx-text-fill: white;");
+        useRepositoryCheck.setSelected(true);
+        useRepositoryCheck.setOnAction(e -> mosaicModule.setUseRepositoryImages(useRepositoryCheck.isSelected()));
+
+        Button btnLoadCustomTiles = new Button("📁 Load Custom Tiles");
+        btnLoadCustomTiles.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnLoadCustomTiles.setOnAction(e -> loadCustomTileImages());
+
+        Button btnRefreshRepo = new Button("🔄 Refresh Repository");
+        btnRefreshRepo.setStyle("-fx-background-color: #ffc107; -fx-text-fill: black; -fx-font-weight: bold;");
+        btnRefreshRepo.setOnAction(e -> {
+            mosaicModule.setUseRepositoryImages(true);
+            Alert info = new Alert(Alert.AlertType.INFORMATION, "Repository images refreshed! Available: " + mosaicModule.getTileCount() + " images");
+            info.showAndWait();
+        });
+
+        Button btnClearTiles = new Button("🗑️ Clear Tiles");
+        btnClearTiles.setStyle("-fx-background-color: #dc3545; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnClearTiles.setOnAction(e -> {
+            mosaicModule.clearTileLibrary();
+            Alert info = new Alert(Alert.AlertType.INFORMATION, "All custom tiles cleared!");
+            info.showAndWait();
+        });
+
+        controlRow2.getChildren().addAll(useRepositoryCheck, btnLoadCustomTiles, btnRefreshRepo, btnClearTiles);
+
+        // Third control row - Generation button and info
+        HBox controlRow3 = new HBox(15);
+        controlRow3.setAlignment(Pos.CENTER);
+
+        Button btnGenerate = new Button("⚙️ Generate Mosaic");
+        btnGenerate.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12 24; -fx-font-size: 14px;");
+
         btnGenerate.setOnAction(e -> {
             if (SharedData.selectedImagePath != null && !SharedData.selectedImagePath.isEmpty()) {
                 mosaicModule.generateMosaic(SharedData.selectedImagePath);
@@ -99,14 +149,41 @@ public class MainDashboard {
             }
         });
 
-        controlBar.getChildren().addAll(sizeLabel, sizePicker, btnGenerate);
+        // Info label
+        Label infoLabel = new Label("Tiles available: " + mosaicModule.getTileCount());
+        infoLabel.setStyle("-fx-text-fill: #aaa; -fx-font-size: 12px;");
 
+        controlRow3.getChildren().addAll(btnGenerate, infoLabel);
+
+        // Display area
         StackPane display = new StackPane(mosaicImageView);
-        display.setStyle("-fx-background-color: #1a1a1a; -fx-border-color: #333;");
+        display.setStyle("-fx-background-color: #1a1a1a; -fx-border-color: #333; -fx-border-width: 2px;");
         display.setPrefSize(750, 500);
 
-        layout.getChildren().addAll(controlBar, display);
+        layout.getChildren().addAll(title, controlRow1, controlRow2, controlRow3, display);
         return layout;
+    }
+
+    private void loadCustomTileImages() {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Select Custom Tile Images for Mosaic");
+        fileChooser.getExtensionFilters().add(
+                new javafx.stage.FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif")
+        );
+
+        java.util.List<java.io.File> files = fileChooser.showOpenMultipleDialog(root.getScene().getWindow());
+
+        if (files != null && !files.isEmpty()) {
+            mosaicModule.setUseRepositoryImages(false); // Switch to custom mode
+            for (java.io.File file : files) {
+                mosaicModule.addTile(file.getAbsolutePath());
+            }
+
+            Alert info = new Alert(Alert.AlertType.INFORMATION,
+                    "Loaded " + files.size() + " custom tile images.\nTotal tiles available: " + mosaicModule.getTileCount() +
+                            "\nNow using custom tiles instead of repository images.");
+            info.showAndWait();
+        }
     }
     
     public void dispose() {

@@ -1,3 +1,5 @@
+package mm.prog.project;
+
 import java.awt.Desktop;
 import java.net.URI;
 import java.net.URLEncoder;

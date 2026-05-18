@@ -1,3 +1,5 @@
+package mm.prog.project;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.io.*;
@@ -16,8 +18,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 
-import model.ImageData;
-import model.SharedData;
 
 public class RepositoryModule {
 

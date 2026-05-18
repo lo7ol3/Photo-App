@@ -1,3 +1,5 @@
+package mm.prog.project;
+
 import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -9,19 +11,19 @@ import javafx.stage.FileChooser;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import javax.imageio.ImageIO;
-import model.SharedData;
+
 
 public class TransformationModule implements SharedData.ImageChangeListener {
     private BorderPane layout;
     private ImageView imageView = new ImageView();
     private BufferedImage originalImage;
     private BufferedImage processedImage;
-    
+
     private WritableImage overlay;
     private PixelWriter writer;
     private ImageView overlayView = new ImageView();
     private boolean[][] mask;
-    
+
     // Core drawing coordinates
     private int startX, startY, lastX, lastY;
     private int maskWidth, maskHeight;
@@ -32,7 +34,7 @@ public class TransformationModule implements SharedData.ImageChangeListener {
     public TransformationModule() {
         createUI();
         // Register instance hooks into global event lifecycle
-        SharedData.registerListener(this);
+        SharedData.addImageChangeListener(this);
     }
 
     private void createUI() {
@@ -44,30 +46,30 @@ public class TransformationModule implements SharedData.ImageChangeListener {
         imageView.setFitWidth(600);
         overlayView.setPreserveRatio(true);
         overlayView.setFitWidth(600);
-        
+
         StackPane stack = new StackPane(imageView, overlayView);
         stack.setStyle("-fx-background-color: #1a1a1a; -fx-border-color: #333;");
         layout.setCenter(stack);
 
         // --- ATTACH LASSO MOUSE INTERFACES ---
-        stack.setOnMousePressed(e -> { 
+        stack.setOnMousePressed(e -> {
             if (imageView.getImage() == null) return;
             startX = toX(e.getX());
             startY = toY(e.getY());
             lastX = startX;
             lastY = startY;
         });
-        
+
         stack.setOnMouseDragged(e -> {
             if (imageView.getImage() == null) return;
             int x = toX(e.getX());
             int y = toY(e.getY());
-            
+
             drawLine(lastX, lastY, x, y); // Safe point bridging
             lastX = x;
             lastY = y;
         });
-        
+
         stack.setOnMouseReleased(e -> {
             if (imageView.getImage() == null) return;
             // Complete bounding ring closure tracking
@@ -94,18 +96,18 @@ public class TransformationModule implements SharedData.ImageChangeListener {
         heightField.setPrefWidth(70);
         Button resizeBtn = new Button("Apply Resize");
         resizeBtn.setStyle("-fx-background-color: #007bff; -fx-text-fill: white;");
-        
+
         resizeBtn.setOnAction(e -> {
             if (originalImage == null) return;
             try {
                 int w = Integer.parseInt(widthField.getText());
                 int h = Integer.parseInt(heightField.getText());
-                
+
                 BufferedImage resized = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
                 java.awt.Graphics2D g = resized.createGraphics();
                 g.drawImage(originalImage, 0, 0, w, h, null);
                 g.dispose();
-                
+
                 processedImage = resized;
                 imageView.setImage(SwingFXUtils.toFXImage(resized, null));
                 statusLabel.setText("Image resized to " + w + "x" + h);
@@ -113,7 +115,7 @@ public class TransformationModule implements SharedData.ImageChangeListener {
                 statusLabel.setText("Invalid dimensions typed.");
             }
         });
-        
+
         HBox resizeInputs = new HBox(5, new Label("W:"), widthField, new Label("H:"), heightField);
         resizeInputs.setAlignment(Pos.CENTER_LEFT);
         controls.getChildren().add(createSection("Resize Frame Matrix", new VBox(8, resizeInputs, resizeBtn)));
@@ -122,7 +124,7 @@ public class TransformationModule implements SharedData.ImageChangeListener {
         Button rotatePlus = new Button("Rotate +90°");
         Button rotateMinus = new Button("Rotate -90°");
         HBox rotationRow = new HBox(10, rotatePlus, rotateMinus);
-        
+
         rotatePlus.setOnAction(e -> imageView.setRotate(imageView.getRotate() + 90));
         rotateMinus.setOnAction(e -> imageView.setRotate(imageView.getRotate() - 90));
         controls.getChildren().add(createSection("Spatial Rotation", rotationRow));
@@ -133,7 +135,7 @@ public class TransformationModule implements SharedData.ImageChangeListener {
         TextField yField = new TextField("0");
         yField.setPrefWidth(60);
         Button moveBtn = new Button("Move Image");
-        
+
         moveBtn.setOnAction(e -> {
             try {
                 double x = Double.parseDouble(xField.getText());
@@ -144,7 +146,7 @@ public class TransformationModule implements SharedData.ImageChangeListener {
                 statusLabel.setText("Invalid coordinate entry.");
             }
         });
-        
+
         HBox translationInputs = new HBox(5, new Label("X:"), xField, new Label("Y:"), yField);
         translationInputs.setAlignment(Pos.CENTER_LEFT);
         controls.getChildren().add(createSection("Translation Matrix", new VBox(8, translationInputs, moveBtn)));
@@ -154,27 +156,27 @@ public class TransformationModule implements SharedData.ImageChangeListener {
         Button extractBtn = new Button("Extract Object");
         Button btnClear = new Button("🧹 Clear Selection");
         Button saveBtn = new Button("💾 Save Transformed");
-        
+
         extractBtn.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold;");
-        
+
         eyedropBtn.setOnAction(e -> {
             eyedropperMode = true;
             statusLabel.setText("Click on image display to pick color...");
         });
 
         // Handle Color selection directly over the raw content view
-        imageView.setOnMouseClicked(e -> { 
+        imageView.setOnMouseClicked(e -> {
             if (!eyedropperMode || originalImage == null) return;
-            
+
             int x = toX(e.getX());
             int y = toY(e.getY());
-            
+
             if (x < 0 || y < 0 || x >= originalImage.getWidth() || y >= originalImage.getHeight())
                 return;
-            
+
             java.awt.Color c = new java.awt.Color(originalImage.getRGB(x, y));
             targetColor = new Color(c.getRed() / 255.0, c.getGreen() / 255.0, c.getBlue() / 255.0, 1.0);
-            
+
             statusLabel.setText("Picked Color Target successfully!");
             eyedropperMode = false;
         });
@@ -182,8 +184,8 @@ public class TransformationModule implements SharedData.ImageChangeListener {
         extractBtn.setOnAction(e -> extractUsingMask());
         btnClear.setOnAction(e -> clearMask());
         saveBtn.setOnAction(e -> saveTransformedImage());
-        
-        VBox segmentationControls = new VBox(8, 
+
+        VBox segmentationControls = new VBox(8,
             new Label("Trace selection outline on layout."),
             eyedropBtn, extractBtn, btnClear, saveBtn
         );
@@ -203,13 +205,13 @@ public class TransformationModule implements SharedData.ImageChangeListener {
             try {
                 File file = new File(newPath);
                 originalImage = ImageIO.read(file);
-                
+
                 if (originalImage != null) {
                     processedImage = originalImage;
                     imageView.setImage(new javafx.scene.image.Image(file.toURI().toString()));
-                    
+
                     // Force the coordinate spaces to match the visual canvas constraints safely
-                    maskWidth = 600; 
+                    maskWidth = 600;
                     maskHeight = (int) (600.0 * originalImage.getHeight() / originalImage.getWidth());
 
                     clearMask();
@@ -228,7 +230,7 @@ public class TransformationModule implements SharedData.ImageChangeListener {
         overlay = new WritableImage(maskWidth, maskHeight);
         writer = overlay.getPixelWriter();
         overlayView.setImage(overlay);
-        
+
         if (originalImage != null) {
             imageView.setImage(SwingFXUtils.toFXImage(originalImage, null));
             processedImage = originalImage;
@@ -286,7 +288,7 @@ public class TransformationModule implements SharedData.ImageChangeListener {
             for (int x = 0; x < w; x++) {
                 int mx = x * maskWidth / w;
                 int my = y * maskHeight / h;
-                
+
                 Color originalColor = currentViewImg.getPixelReader().getColor(x, y);
 
                 if (region[mx][my]) {
@@ -382,12 +384,12 @@ public class TransformationModule implements SharedData.ImageChangeListener {
 
     private void saveTransformedImage() {
         if (processedImage == null) return;
-        
+
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Save Transformed Output File Image");
         chooser.setInitialFileName("transformed_output.png");
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG File Image System (*.png)", "*.png"));
-        
+
         File file = chooser.showSaveDialog(layout.getScene().getWindow());
         if (file != null) {
             try {
@@ -417,7 +419,7 @@ public class TransformationModule implements SharedData.ImageChangeListener {
         box.setStyle("-fx-border-color: #444; -fx-padding: 10; -fx-border-radius: 5;");
         return box;
     }
-    
+
     public BorderPane getLayout() {
         return this.layout;
     }

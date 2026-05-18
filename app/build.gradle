@@ -8,12 +8,17 @@ repositories {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "org.openjfx:javafx-media:21"
+    dependencies {
+        implementation fileTree(dir: 'libs', include: ['*.jar'])
+        implementation 'org.openjfx:javafx-media:17'
+        implementation 'org.openjfx:javafx-controls:17'
+        implementation 'org.openjfx:javafx-fxml:17'
+        implementation 'org.openjfx:javafx-swing:17'
+    }
 }
 
 javafx {
-    version = "21"
+    version = "17.0.1"
     modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.media' ]
 }
 

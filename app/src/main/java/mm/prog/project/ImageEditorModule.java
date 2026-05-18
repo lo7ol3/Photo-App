@@ -1,6 +1,6 @@
+package mm.prog.project;
 
 
-import model.SharedData;
 import java.io.File;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -30,7 +30,7 @@ public class ImageEditorModule implements SharedData.ImageChangeListener {
         createUI();
         
         // Register this workspace to listen to global image selection updates
-        SharedData.registerListener(this);
+        SharedData.addImageChangeListener(this);
         
         // Initial load check if an image is already selected in the hub
         if (SharedData.selectedImagePath != null && !SharedData.selectedImagePath.isEmpty()) {

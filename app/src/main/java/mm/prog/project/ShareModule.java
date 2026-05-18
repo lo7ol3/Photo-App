@@ -1,8 +1,10 @@
+package mm.prog.project;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import model.SharedData;
+
 
 public class ShareModule implements SharedData.ImageChangeListener {
     private BorderPane layout;
@@ -13,7 +15,7 @@ public class ShareModule implements SharedData.ImageChangeListener {
     public ShareModule() {
         createUI();
         // Listen to global changes to track which image path is active
-        SharedData.registerListener(this);
+        SharedData.addImageChangeListener(this);
     }
 
     private void createUI() {
