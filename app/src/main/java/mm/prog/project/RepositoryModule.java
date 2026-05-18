@@ -18,7 +18,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 
-
 public class RepositoryModule {
 
     private BorderPane layout;
@@ -26,11 +25,14 @@ public class RepositoryModule {
     private List<ImageData> imageList = new ArrayList<>();
     private final String FILE_PATH = "data.json";
     private final Gson gson = new Gson();
-    private StackPane selectedContainer = null;
+
+    // Updated to handle multiple selected elements tracking
+    private List<StackPane> selectedContainers = new ArrayList<>();
+    private List<String> selectedImagePaths = new ArrayList<>();
 
     public RepositoryModule() {
         createUI();
-        loadData(); 
+        loadData();
     }
 
     private void createUI() {
@@ -45,7 +47,7 @@ public class RepositoryModule {
         Label title = new Label("Image Repository Archive");
         title.setTextFill(Color.WHITE);
         title.setFont(Font.font("System Bold", 20));
-        
+
         AnchorPane.setLeftAnchor(title, 24.0);
         AnchorPane.setTopAnchor(title, 22.0);
 
@@ -60,11 +62,11 @@ public class RepositoryModule {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Select Local Images to Add into Repository");
             fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Image Files System Matrix", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif")
+                    new FileChooser.ExtensionFilter("Image Files System Matrix", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif")
             );
 
             List<File> selectedFiles = fileChooser.showOpenMultipleDialog(layout.getScene().getWindow());
-            
+
             if (selectedFiles != null && !selectedFiles.isEmpty()) {
                 for (File file : selectedFiles) {
                     String pathString = file.getAbsolutePath();
@@ -77,7 +79,7 @@ public class RepositoryModule {
         layout.setTop(topPane);
 
         tilePane = new TilePane();
-        tilePane.setHgap(40); 
+        tilePane.setHgap(40);
         tilePane.setVgap(40);
         tilePane.setPrefTileWidth(210);
         tilePane.setPrefTileHeight(210);
@@ -92,7 +94,6 @@ public class RepositoryModule {
         layout.setCenter(scrollPane);
     }
 
-    // --- Added: This filters for the images that have the heart icons! ---
     public List<String> getAnnotatedFavoriteImages() {
         List<String> favorites = new ArrayList<>();
         for (ImageData data : imageList) {
@@ -101,6 +102,19 @@ public class RepositoryModule {
             }
         }
         return favorites;
+    }
+
+    public List<String> getAllImagePaths() {
+        List<String> paths = new ArrayList<>();
+        for (ImageData data : imageList) {
+            paths.add(data.imagePath);
+        }
+        return paths;
+    }
+
+    // Exposed helper method to fetch selected snapshots for your Collage tab
+    public List<String> getSelectedImagePaths() {
+        return new ArrayList<>(this.selectedImagePaths);
     }
 
     public void addImageToUI(ImageData data) {
@@ -141,16 +155,24 @@ public class RepositoryModule {
                 tooltip.setText(data.annotation == null || data.annotation.isEmpty() ? "No annotation" : data.annotation);
             });
 
+            // MULTI-SELECTION LOGIC BLOCK
             container.setOnMouseClicked(e -> {
-                if (selectedContainer != null) {
-                    selectedContainer.setStyle("-fx-border-color: #444; -fx-border-width: 2; -fx-background-color: #111;");
+                String path = data.imagePath;
+
+                if (selectedImagePaths.contains(path)) {
+                    // Item was already highlighted -> Deselect it
+                    container.setStyle("-fx-border-color: #444; -fx-border-width: 2; -fx-background-color: #111;");
+                    selectedContainers.remove(container);
+                    selectedImagePaths.remove(path);
+                } else {
+                    // Item is fresh -> Apply selection yellow highlight boundary
+                    container.setStyle("-fx-border-color: yellow; -fx-border-width: 3; -fx-background-color: #111;");
+                    selectedContainers.add(container);
+                    selectedImagePaths.add(path);
                 }
 
-                container.setStyle("-fx-border-color: yellow; -fx-border-width: 3; -fx-background-color: #111;");
-                selectedContainer = container;
-
-                SharedData.selectedImagePath = data.imagePath;
-                SharedData.setSelectedImagePath(data.imagePath);
+                // Sync current state snapshots dynamically to SharedData module
+                SharedData.setSelectedImagePaths(new ArrayList<>(selectedImagePaths));
             });
 
             tilePane.getChildren().add(container);
@@ -178,7 +200,7 @@ public class RepositoryModule {
             data.annotation = text;
             data.hasAnnotation = text != null && !text.trim().isEmpty();
             heart.setVisible(data.hasAnnotation);
-            saveData(); 
+            saveData();
         });
     }
 
@@ -212,14 +234,14 @@ public class RepositoryModule {
             System.err.println("Persistent data initialization failed: " + e.getMessage());
         }
     }
-    
+
     public void registerNewImage(String path) {
         if (path == null || path.trim().isEmpty()) return;
-        
+
         for (ImageData existing : imageList) {
             if (existing.imagePath.equalsIgnoreCase(path)) return;
         }
-        
+
         ImageData data = new ImageData(path, "");
         imageList.add(data);
         addImageToUI(data);
