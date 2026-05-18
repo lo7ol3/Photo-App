@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.List;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -14,7 +16,6 @@ public class MainDashboard {
     private TransformationModule transformationModule;
     private MosaicModule mosaicModule;
     private ShareModule shareModule;
-    private LoadImageTab loadImageTab;
 
     public MainDashboard() {
         root = new BorderPane();
@@ -25,7 +26,9 @@ public class MainDashboard {
         imageEditorModule = new ImageEditorModule();
         transformationModule = new TransformationModule();
         shareModule = new ShareModule();
-        loadImageTab = new LoadImageTab(this);
+        
+        // Connect the video generator to your repository's love-icon (annotated) images!
+        videoModule.setFavoriteImageSupplier(() -> repositoryModule.getAnnotatedFavoriteImages());
         
         ImageView mosaicImageView = new ImageView();
         mosaicImageView.setFitWidth(700);
@@ -37,8 +40,7 @@ public class MainDashboard {
         navBar.setPadding(new Insets(15));
         navBar.setStyle("-fx-background-color: #222;");
         
-        Button btnLoadTab = new Button("📂 Load Image Hub");
-        Button btnRepository = new Button("🗄️ Repository");
+        Button btnRepository = new Button("🗄️ Repository Archive");
         Button btnEditor = new Button("DIP Editor");
         Button btnTransformation = new Button("Transformation");
         Button btnMosaic = new Button("Image Mosaic");
@@ -48,22 +50,21 @@ public class MainDashboard {
         
         // Assign visual styles to navigation buttons
         String btnStyle = "-fx-background-color: #444; -fx-text-fill: white; -fx-font-weight: bold;";
-        btnLoadTab.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnRepository.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold;");
         btnEditor.setStyle(btnStyle);
         btnTransformation.setStyle(btnStyle);
         btnMosaic.setStyle(btnStyle);
         btnVideo.setStyle(btnStyle);
         
         // Dynamic Workspace Views Switching
-        btnLoadTab.setOnAction(e -> root.setCenter(loadImageTab.getLayout()));
+        btnRepository.setOnAction(e -> root.setCenter(repositoryModule.getLayout()));
         btnEditor.setOnAction(e -> root.setCenter(imageEditorModule.getLayout()));
         btnTransformation.setOnAction(e -> root.setCenter(transformationModule.getLayout()));
         btnMosaic.setOnAction(e -> root.setCenter(createMosaicLayout(mosaicImageView)));
         btnShare.setOnAction(e -> root.setCenter(shareModule.getLayout()));
         btnVideo.setOnAction(e -> root.setCenter(videoModule.getLayout()));
-        btnRepository.setOnAction(e -> root.setCenter(repositoryModule.getLayout()));
         
-        navBar.getChildren().addAll(btnLoadTab, btnEditor,btnRepository, btnTransformation, btnMosaic, btnVideo, btnShare);
+        navBar.getChildren().addAll(btnRepository, btnEditor, btnTransformation, btnMosaic, btnVideo, btnShare);
         root.setTop(navBar);
         
         // Default execution view
@@ -94,7 +95,7 @@ public class MainDashboard {
             if (SharedData.selectedImagePath != null && !SharedData.selectedImagePath.isEmpty()) {
                 mosaicModule.generateMosaic(SharedData.selectedImagePath);
             } else {
-                Alert alert = new Alert(Alert.AlertType.WARNING, "Please go to the 'Load Image Hub' tab and select an image workspace first!");
+                Alert alert = new Alert(Alert.AlertType.WARNING, "Please select an image profile tracking thumbnail in the Repository Archive first!");
                 alert.showAndWait();
             }
         });
@@ -126,5 +127,4 @@ public class MainDashboard {
     public RepositoryModule getRepositoryModule() {
         return this.repositoryModule;
     }
-
 }
