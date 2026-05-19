@@ -11,7 +11,7 @@ public class MainDashboard {
     private VideoGeneratorModule videoModule;
     private ImageEditorModule imageEditorModule;
     private TransformationModule transformationModule;
-    private CollageModule collageModule;
+    private MosaicModule mosaicModule;
     private ShareModule shareModule;
 
     // Define our button styles so they are easy to change later
@@ -35,7 +35,7 @@ public class MainDashboard {
         videoModule.setFavoriteImageSupplier(() -> repositoryModule.getAnnotatedFavoriteImages());
 
         // Initialize the Collage (Mosaic) module
-        collageModule = new CollageModule(repositoryModule);
+        mosaicModule = new MosaicModule(repositoryModule);
 
         // =========================================================
         // Anchor the Repository permanently to the LEFT Side
@@ -69,7 +69,7 @@ public class MainDashboard {
         });
 
         btnMosaic.setOnAction(e -> {
-            root.setCenter(collageModule.getView());
+            root.setCenter(mosaicModule.getView());
             setActiveTab(btnMosaic, btnEditor, btnTransformation, btnMosaic, btnVideo, btnShare);
         });
 
