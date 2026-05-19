@@ -26,8 +26,7 @@ public class RepositoryModule {
     private final String FILE_PATH = "data.json";
     private final Gson gson = new Gson();
 
-    // Updated to handle multiple selected elements tracking
-    private List<StackPane> selectedContainers = new ArrayList<>();
+    // A list to keep track of ALL currently selected images
     private List<String> selectedImagePaths = new ArrayList<>();
 
     public RepositoryModule() {
@@ -37,26 +36,26 @@ public class RepositoryModule {
 
     private void createUI() {
         layout = new BorderPane();
-        layout.setPrefSize(1500, 800);
+        layout.setPrefSize(350, 800);
         layout.setStyle("-fx-background-color: black;");
 
         AnchorPane topPane = new AnchorPane();
         topPane.setPrefHeight(75);
         topPane.setStyle("-fx-background-color: #18181b; -fx-border-color: #333333; -fx-border-width: 0 0 1 0;");
 
-        Label title = new Label("Image Repository Archive");
+        Label title = new Label("Image Repository");
         title.setTextFill(Color.WHITE);
-        title.setFont(Font.font("System Bold", 20));
+        title.setFont(Font.font("System Bold", 16));
 
-        AnchorPane.setLeftAnchor(title, 24.0);
-        AnchorPane.setTopAnchor(title, 22.0);
+        AnchorPane.setLeftAnchor(title, 15.0);
+        AnchorPane.setTopAnchor(title, 26.0);
 
-        Button btnLoadImage = new Button("📂 Load Image");
-        btnLoadImage.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 4;");
+        Button btnLoadImage = new Button("📂 Load");
+        btnLoadImage.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 6 15; -fx-background-radius: 4;");
         btnLoadImage.setCursor(Cursor.HAND);
 
-        AnchorPane.setRightAnchor(btnLoadImage, 25.0);
-        AnchorPane.setTopAnchor(btnLoadImage, 18.0);
+        AnchorPane.setRightAnchor(btnLoadImage, 15.0);
+        AnchorPane.setTopAnchor(btnLoadImage, 22.0);
 
         btnLoadImage.setOnAction(e -> {
             FileChooser fileChooser = new FileChooser();
@@ -85,6 +84,7 @@ public class RepositoryModule {
         tilePane.setPrefTileHeight(210);
         tilePane.setPadding(new Insets(40));
         tilePane.setStyle("-fx-background-color: black;");
+        tilePane.setAlignment(Pos.TOP_CENTER);
 
         ScrollPane scrollPane = new ScrollPane(tilePane);
         scrollPane.setFitToHeight(true);
@@ -112,9 +112,9 @@ public class RepositoryModule {
         return paths;
     }
 
-    // Exposed helper method to fetch selected snapshots for your Collage tab
+    // Method to return all currently highlighted images
     public List<String> getSelectedImagePaths() {
-        return new ArrayList<>(this.selectedImagePaths);
+        return new ArrayList<>(selectedImagePaths);
     }
 
     public void addImageToUI(ImageData data) {
@@ -140,39 +140,82 @@ public class RepositoryModule {
             StackPane.setAlignment(editBtn, Pos.BOTTOM_RIGHT);
             StackPane.setMargin(editBtn, new Insets(0, 5, 5, 0));
 
-            editBtn.setOnAction(e -> openAnnotationDialog(heart, data));
+            // --- NEW: DELETE BUTTON ---
+            Button deleteBtn = new Button("🗑");
+            deleteBtn.setTextFill(Color.WHITE);
+            deleteBtn.setFont(Font.font(14));
+            deleteBtn.setStyle("-fx-background-color: rgba(0, 0, 0, 0.5); -fx-background-radius: 15; -fx-cursor: hand;");
+            StackPane.setAlignment(deleteBtn, Pos.BOTTOM_LEFT);
+            StackPane.setMargin(deleteBtn, new Insets(0, 0, 5, 5));
 
             StackPane container = new StackPane();
             container.setStyle("-fx-border-color: #444; -fx-border-width: 2; -fx-background-color: #111;");
-            container.getChildren().addAll(imageView, heart, editBtn);
+            container.getChildren().addAll(imageView, heart, editBtn, deleteBtn);
             container.setCursor(Cursor.HAND);
+
+            // Prevent button clicks from bubbling up and triggering the selection logic on the container
+            editBtn.setOnMouseClicked(e -> e.consume());
+            deleteBtn.setOnMouseClicked(e -> e.consume());
+
+            editBtn.setOnAction(e -> openAnnotationDialog(heart, data));
+
+            // --- NEW: DELETE BUTTON ACTION CONFIGURATION ---
+            deleteBtn.setOnAction(e -> {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure you want to remove this image from the repository?", ButtonType.YES, ButtonType.NO);
+                alert.setHeaderText(null);
+                alert.setTitle("Delete Image");
+                alert.initOwner(layout.getScene().getWindow());
+                alert.showAndWait().ifPresent(response -> {
+                    if (response == ButtonType.YES) {
+                        // 1. Remove from inner data tracking
+                        imageList.remove(data);
+                        selectedImagePaths.remove(data.imagePath);
+
+                        // 2. Remove visually from layout grid
+                        tilePane.getChildren().remove(container);
+
+                        // 3. Clear global single-image tool selection if this was active
+                        if (SharedData.selectedImagePath != null && SharedData.selectedImagePath.equals(data.imagePath)) {
+                            if (!selectedImagePaths.isEmpty()) {
+                                String fallback = selectedImagePaths.get(selectedImagePaths.size() - 1);
+                                SharedData.selectedImagePath = fallback;
+                                SharedData.setSelectedImagePath(fallback);
+                            } else {
+                                SharedData.selectedImagePath = null;
+                            }
+                        }
+
+                        // 4. Commit changes to JSON file
+                        saveData();
+                    }
+                });
+            });
 
             Tooltip tooltip = new Tooltip(data.annotation == null || data.annotation.isEmpty() ? "No annotation" : data.annotation);
             tooltip.setStyle("-fx-font-size: 14px;");
             Tooltip.install(container, tooltip);
 
-            container.setOnMouseEntered(e -> {
-                tooltip.setText(data.annotation == null || data.annotation.isEmpty() ? "No annotation" : data.annotation);
-            });
-
-            // MULTI-SELECTION LOGIC BLOCK
+            // Multi-select toggle logic
             container.setOnMouseClicked(e -> {
-                String path = data.imagePath;
-
-                if (selectedImagePaths.contains(path)) {
-                    // Item was already highlighted -> Deselect it
+                if (selectedImagePaths.contains(data.imagePath)) {
+                    // If already selected, UN-SELECT it
+                    selectedImagePaths.remove(data.imagePath);
                     container.setStyle("-fx-border-color: #444; -fx-border-width: 2; -fx-background-color: #111;");
-                    selectedContainers.remove(container);
-                    selectedImagePaths.remove(path);
                 } else {
-                    // Item is fresh -> Apply selection yellow highlight boundary
+                    // If not selected, SELECT it
+                    selectedImagePaths.add(data.imagePath);
                     container.setStyle("-fx-border-color: yellow; -fx-border-width: 3; -fx-background-color: #111;");
-                    selectedContainers.add(container);
-                    selectedImagePaths.add(path);
                 }
 
-                // Sync current state snapshots dynamically to SharedData module
-                SharedData.setSelectedImagePaths(new ArrayList<>(selectedImagePaths));
+                // Keep SharedData updated for your other tabs (DIP Editor, etc.)
+                if (!selectedImagePaths.isEmpty()) {
+                    // Sets the most recently clicked image for single-image tools
+                    String lastSelected = selectedImagePaths.get(selectedImagePaths.size() - 1);
+                    SharedData.selectedImagePath = lastSelected;
+                    SharedData.setSelectedImagePath(lastSelected);
+                } else {
+                    SharedData.selectedImagePath = null;
+                }
             });
 
             tilePane.getChildren().add(container);

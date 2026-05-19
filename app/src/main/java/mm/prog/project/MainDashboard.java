@@ -1,11 +1,7 @@
 package mm.prog.project;
 
-import java.util.ArrayList;
-import java.util.List;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 
 public class MainDashboard {
@@ -15,9 +11,15 @@ public class MainDashboard {
     private VideoGeneratorModule videoModule;
     private ImageEditorModule imageEditorModule;
     private TransformationModule transformationModule;
-    private MosaicModule mosaicModule;
-    private CollageModule collageModule; // NEW: Added Collage Module reference
+    private CollageModule collageModule;
     private ShareModule shareModule;
+
+    // Define our button styles so they are easy to change later
+    private final String defaultBtnStyle = "-fx-background-color: #444; -fx-text-fill: white; -fx-font-weight: bold;";
+    private final String activeBtnStyle = "-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold;"; // Bright Blue
+
+    private final String defaultShareStyle = "-fx-background-color: #25d366; -fx-text-fill: black; -fx-font-weight: bold;";
+    private final String activeShareStyle = "-fx-background-color: #1da849; -fx-text-fill: white; -fx-font-weight: bold;"; // Darker Green
 
     public MainDashboard() {
         root = new BorderPane();
@@ -29,96 +31,85 @@ public class MainDashboard {
         transformationModule = new TransformationModule();
         shareModule = new ShareModule();
 
-        // Connect the video generator to your repository's love-icon (annotated) images!
+        // Connect the video generator to your repository's love-icon (annotated) images
         videoModule.setFavoriteImageSupplier(() -> repositoryModule.getAnnotatedFavoriteImages());
 
-        // Keep the original Mosaic setup
-        ImageView mosaicImageView = new ImageView();
-        mosaicImageView.setFitWidth(700);
-        mosaicImageView.setPreserveRatio(true);
-        mosaicModule = new MosaicModule(mosaicImageView);
-
-        // NEW: Initialize the Collage Module and pass the repository to it
+        // Initialize the Collage (Mosaic) module
         collageModule = new CollageModule(repositoryModule);
+
+        // =========================================================
+        // Anchor the Repository permanently to the LEFT Side
+        // =========================================================
+        BorderPane repoSidebar = repositoryModule.getLayout();
+        repoSidebar.setPrefWidth(350); // Constrain width so it acts like a sidebar
+        repoSidebar.setMinWidth(300);
+        root.setLeft(repoSidebar);
 
         // Navigation bar architecture
         HBox navBar = new HBox(15);
         navBar.setPadding(new Insets(15));
         navBar.setStyle("-fx-background-color: #222;");
 
-        Button btnRepository = new Button("🗄️ Repository Archive");
-        Button btnEditor = new Button("DIP Editor");
+        // Buttons
+        Button btnEditor = new Button("Image Editor");
         Button btnTransformation = new Button("Transformation");
         Button btnMosaic = new Button("Image Mosaic");
-        Button btnCollage = new Button("🖼️ Photo Collage"); // NEW: Collage Button
-        Button btnShare = new Button("🔗 Share");
-        btnShare.setStyle("-fx-background-color: #25d366; -fx-text-fill: black; -fx-font-weight: bold;");
         Button btnVideo = new Button("Video Generator");
+        Button btnShare = new Button("🔗 Share");
 
-        // Assign visual styles to navigation buttons
-        String btnStyle = "-fx-background-color: #444; -fx-text-fill: white; -fx-font-weight: bold;";
-        btnRepository.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold;");
-        btnEditor.setStyle(btnStyle);
-        btnTransformation.setStyle(btnStyle);
-        btnMosaic.setStyle(btnStyle);
-        btnCollage.setStyle("-fx-background-color: #e83e8c; -fx-text-fill: white; -fx-font-weight: bold;"); // NEW: Distinct style for Collage
-        btnVideo.setStyle(btnStyle);
-
-        // Dynamic Workspace Views Switching
-        btnRepository.setOnAction(e -> root.setCenter(repositoryModule.getLayout()));
-        btnEditor.setOnAction(e -> root.setCenter(imageEditorModule.getLayout()));
-        btnTransformation.setOnAction(e -> root.setCenter(transformationModule.getLayout()));
-        btnMosaic.setOnAction(e -> root.setCenter(createMosaicLayout(mosaicImageView)));
-        btnCollage.setOnAction(e -> root.setCenter(collageModule.getView())); // NEW: Switch to Collage view
-        btnShare.setOnAction(e -> root.setCenter(shareModule.getLayout()));
-        btnVideo.setOnAction(e -> root.setCenter(videoModule.getLayout()));
-
-        // NEW: Added btnCollage to the navigation bar
-        navBar.getChildren().addAll(btnRepository, btnEditor, btnTransformation, btnMosaic, btnCollage, btnVideo, btnShare);
-        root.setTop(navBar);
-
-        // Default execution view
-        root.setCenter(repositoryModule.getLayout());
-    }
-
-    // Your original createMosaicLayout method remains completely untouched!
-    private VBox createMosaicLayout(ImageView mosaicImageView) {
-        VBox layout = new VBox(15);
-        layout.setPadding(new Insets(20));
-        layout.setStyle("-fx-background-color: #121212;");
-
-        HBox controlBar = new HBox(15);
-        controlBar.setAlignment(Pos.CENTER_LEFT);
-
-        ComboBox<Integer> sizePicker = new ComboBox<>();
-        sizePicker.getItems().addAll(10, 20, 30);
-        sizePicker.setValue(20);
-        sizePicker.setOnAction(e -> mosaicModule.setTileSize(sizePicker.getValue()));
-
-        Label sizeLabel = new Label("Tile Size:");
-        sizeLabel.setStyle("-fx-text-fill: white;");
-
-        Button btnGenerate = new Button("⚙ Generate Mosaic");
-        btnGenerate.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold;");
-
-        // Pulls dynamic target path directly out of global SharedData registry
-        btnGenerate.setOnAction(e -> {
-            if (SharedData.selectedImagePath != null && !SharedData.selectedImagePath.isEmpty()) {
-                mosaicModule.generateMosaic(SharedData.selectedImagePath);
-            } else {
-                Alert alert = new Alert(Alert.AlertType.WARNING, "Please select an image profile tracking thumbnail in the Repository Archive first!");
-                alert.showAndWait();
-            }
+        // Dynamic Workspace Views Switching (Center Panel Only) + Active Tab Highlighting
+        btnEditor.setOnAction(e -> {
+            root.setCenter(imageEditorModule.getLayout());
+            setActiveTab(btnEditor, btnEditor, btnTransformation, btnMosaic, btnVideo, btnShare);
         });
 
-        controlBar.getChildren().addAll(sizeLabel, sizePicker, btnGenerate);
+        btnTransformation.setOnAction(e -> {
+            root.setCenter(transformationModule.getLayout());
+            setActiveTab(btnTransformation, btnEditor, btnTransformation, btnMosaic, btnVideo, btnShare);
+        });
 
-        StackPane display = new StackPane(mosaicImageView);
-        display.setStyle("-fx-background-color: #1a1a1a; -fx-border-color: #333;");
-        display.setPrefSize(750, 500);
+        btnMosaic.setOnAction(e -> {
+            root.setCenter(collageModule.getView());
+            setActiveTab(btnMosaic, btnEditor, btnTransformation, btnMosaic, btnVideo, btnShare);
+        });
 
-        layout.getChildren().addAll(controlBar, display);
-        return layout;
+        btnVideo.setOnAction(e -> {
+            root.setCenter(videoModule.getLayout());
+            setActiveTab(btnVideo, btnEditor, btnTransformation, btnMosaic, btnVideo, btnShare);
+        });
+
+        btnShare.setOnAction(e -> {
+            root.setCenter(shareModule.getLayout());
+            setActiveTab(btnShare, btnEditor, btnTransformation, btnMosaic, btnVideo, btnShare);
+        });
+
+        navBar.getChildren().addAll(btnEditor, btnTransformation, btnMosaic, btnVideo, btnShare);
+        root.setTop(navBar);
+
+        // Default execution view (Now defaults to DIP Editor in the center)
+        root.setCenter(imageEditorModule.getLayout());
+
+        // Set the initial active tab colors to match the default view
+        setActiveTab(btnEditor, btnEditor, btnTransformation, btnMosaic, btnVideo, btnShare);
+    }
+
+    /**
+     * Helper method to reset all button colors and highlight the active one
+     */
+    private void setActiveTab(Button activeBtn, Button btnEditor, Button btnTransformation, Button btnMosaic, Button btnVideo, Button btnShare) {
+        // 1. Reset all to default styles
+        btnEditor.setStyle(defaultBtnStyle);
+        btnTransformation.setStyle(defaultBtnStyle);
+        btnMosaic.setStyle(defaultBtnStyle);
+        btnVideo.setStyle(defaultBtnStyle);
+        btnShare.setStyle(defaultShareStyle);
+
+        // 2. Apply the active style to whichever button was clicked
+        if (activeBtn == btnShare) {
+            activeBtn.setStyle(activeShareStyle);
+        } else {
+            activeBtn.setStyle(activeBtnStyle);
+        }
     }
 
     public void dispose() {

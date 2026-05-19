@@ -15,12 +15,12 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Polygon;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 public class CollageModule {
 
+    private BorderPane rootLayout;
     private VBox mainLayout;
     private Pane collageArea;
     private ComboBox<String> styleCombo;
@@ -36,10 +36,23 @@ public class CollageModule {
         this.repo = repo;
         this.random = new Random();
 
+        // --- NEW: Adjusted Title Header ---
+        rootLayout = new BorderPane();
+        rootLayout.setStyle("-fx-background-color: #121212;");
+
+        Label titleLabel = new Label("Image Mosaic");
+        titleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
+
+        HBox headerBox = new HBox(titleLabel);
+        // Matches the 22px top padding for perfect horizontal alignment across tabs
+        headerBox.setPadding(new Insets(22, 15, 10, 20));
+        rootLayout.setTop(headerBox);
+
+        // --- Original Workspace Setup ---
         mainLayout = new VBox(15);
-        mainLayout.setPadding(new Insets(20));
+        mainLayout.setPadding(new Insets(10, 20, 20, 20)); // Adjusted top padding slightly since header has padding
         mainLayout.setAlignment(Pos.TOP_CENTER);
-        mainLayout.setStyle("-fx-background-color: #1e1e1e;"); // Match dark theme
+        mainLayout.setStyle("-fx-background-color: #121212;"); // Match dark theme of the root
 
         // --- 1. UI Controls ---
         HBox controls = new HBox(15);
@@ -51,7 +64,7 @@ public class CollageModule {
         shapeCombo = new ComboBox<>(FXCollections.observableArrayList("Rectangle", "Circle", "Star"));
         shapeCombo.setValue("Rectangle");
 
-        Button generateBtn = new Button("Generate Collage");
+        Button generateBtn = new Button("Generate Mosaic");
         generateBtn.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold;");
         generateBtn.setOnAction(e -> generateCollage());
 
@@ -69,17 +82,21 @@ public class CollageModule {
         collageArea.setStyle("-fx-background-color: #2b2b2b; -fx-border-color: #444; -fx-border-width: 2px;");
 
         mainLayout.getChildren().addAll(controls, collageArea);
+
+        // Place the main layout in the center of the root layout
+        rootLayout.setCenter(mainLayout);
     }
 
     public Node getView() {
-        return mainLayout;
+        // Return the rootLayout now, which includes the title and the workspace
+        return rootLayout;
     }
 
     private void generateCollage() {
         collageArea.getChildren().clear(); // Clear old collage
         collageArea.setClip(null); // Reset previous shapes
 
-        // Fetch highlighted images from the Repo tab
+        // Fetch ONLY the highlighted images (yellow border) from the Repo tab
         List<String> targetImagePaths = repo.getSelectedImagePaths();
 
         // Fallback: If no explicit yellow border selections exist, safely process everything in the library
@@ -88,7 +105,7 @@ public class CollageModule {
         }
 
         if (targetImagePaths == null || targetImagePaths.isEmpty()) {
-            Alert alert = new Alert(Alert.AlertType.WARNING, "Your Image Repository is empty! Please load images first.");
+            Alert alert = new Alert(Alert.AlertType.WARNING, "No images available! Please load or select images first.");
             alert.showAndWait();
             return;
         }

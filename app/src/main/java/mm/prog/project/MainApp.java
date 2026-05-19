@@ -33,7 +33,7 @@ public class MainApp extends Application {
 
         // Changed dashboard.getContainer() to dashboard.getLayout()
         stage.setScene(new Scene(dashboard.getLayout(), 1024, 768));
-        stage.setTitle("MM PROG Project - Video Synthesis");
+        stage.setTitle("Photo App_Group 7");
         stage.show();
 
         stage.setOnCloseRequest(e -> dashboard.dispose());

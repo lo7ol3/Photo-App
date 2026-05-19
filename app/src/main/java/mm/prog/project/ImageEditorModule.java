@@ -1,6 +1,5 @@
 package mm.prog.project;
 
-
 import java.io.File;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -12,11 +11,11 @@ import javafx.stage.FileChooser.ExtensionFilter;
 
 public class ImageEditorModule implements SharedData.ImageChangeListener {
     private BorderPane layout;
-    private Image_Editing imageProcessor; 
+    private Image_Editing imageProcessor;
     private ImageView imageView;
     private Label statusLabel;
     private VBox controlPanel;
-    
+
     // UI Controls
     private Slider brightnessSlider;
     private Slider contrastSlider;
@@ -28,10 +27,10 @@ public class ImageEditorModule implements SharedData.ImageChangeListener {
     public ImageEditorModule() {
         imageProcessor = new Image_Editing();
         createUI();
-        
+
         // Register this workspace to listen to global image selection updates
         SharedData.addImageChangeListener(this);
-        
+
         // Initial load check if an image is already selected in the hub
         if (SharedData.selectedImagePath != null && !SharedData.selectedImagePath.isEmpty()) {
             onImageChanged(SharedData.selectedImagePath);
@@ -42,8 +41,8 @@ public class ImageEditorModule implements SharedData.ImageChangeListener {
         layout = new BorderPane();
         layout.setStyle("-fx-background-color: #121212;");
 
-        // Top Header: Visual Title Bar only (Load button completely removed)
-        VBox header = createHeader();
+        // Top Header: Aligned Title
+        HBox header = createHeader();
         layout.setTop(header);
 
         // Center Area: Main Workspace Display Viewport
@@ -67,18 +66,13 @@ public class ImageEditorModule implements SharedData.ImageChangeListener {
         enableControls(false);
     }
 
-    private VBox createHeader() {
-        VBox headerBox = new VBox(5);
-        headerBox.setPadding(new Insets(15));
-        headerBox.setStyle("-fx-background-color: #1c1c1c; -fx-border-color: #2c2c2c; -fx-border-width: 0 0 1 0;");
-        
-        Label titleLabel = new Label("🎨 Digital Image Processing (DIP) Workspace");
+    private HBox createHeader() {
+        Label titleLabel = new Label("Image Editing");
         titleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
-        
-        Label infoLabel = new Label("Enhancements apply dynamically to the image loaded via the central Hub.");
-        infoLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 11px;");
-        
-        headerBox.getChildren().addAll(titleLabel, infoLabel);
+
+        HBox headerBox = new HBox(titleLabel);
+        // Matches the 22px top padding for perfect horizontal alignment across all tabs
+        headerBox.setPadding(new Insets(22, 15, 10, 20));
         return headerBox;
     }
 
@@ -86,12 +80,12 @@ public class ImageEditorModule implements SharedData.ImageChangeListener {
         VBox area = new VBox();
         area.setAlignment(Pos.CENTER);
         area.setPadding(new Insets(20));
-        
+
         imageView = new ImageView();
         imageView.setPreserveRatio(true);
         imageView.setFitWidth(650);
         imageView.setFitHeight(450);
-        
+
         area.getChildren().add(imageView);
         return area;
     }
@@ -134,10 +128,10 @@ public class ImageEditorModule implements SharedData.ImageChangeListener {
         borderLabel.setStyle("-fx-text-fill: #ccc;");
         borderSlider = new Slider(0, 50, 0);
         borderColorPicker = new ColorPicker(javafx.scene.paint.Color.BLACK);
-        
+
         borderSlider.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
         borderColorPicker.setOnAction(e -> applyFilters());
-        
+
         borderSection.getChildren().addAll(borderLabel, borderSlider, borderColorPicker);
         panel.getChildren().add(borderSection);
 
@@ -187,14 +181,14 @@ public class ImageEditorModule implements SharedData.ImageChangeListener {
             double contrast = contrastSlider.getValue();
             int blurRadius = (int) blurSlider.getValue();
             if (blurRadius % 2 == 0) blurRadius++; // Must remain odd for Gaussian matrices
-            
+
             boolean grayscale = grayscaleCheckbox.isSelected();
             int borderSize = (int) borderSlider.getValue();
             javafx.scene.paint.Color fxColor = borderColorPicker.getValue();
 
             // Execute matrix conversions pipeline via your Image_Editing.java class file
             imageProcessor.applySettings(brightness, contrast, grayscale, blurRadius, borderSize, fxColor);
-            
+
             // Render back up to screen
             imageView.setImage(imageProcessor.getEditedImage());
         }
@@ -205,7 +199,7 @@ public class ImageEditorModule implements SharedData.ImageChangeListener {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Save Image Changes");
             fileChooser.getExtensionFilters().add(new ExtensionFilter("PNG Image Files (*.png)", "*.png"));
-            
+
             File file = fileChooser.showSaveDialog(layout.getScene().getWindow());
             if (file != null) {
                 boolean success = imageProcessor.saveImage(file.getAbsolutePath());
